@@ -5,6 +5,7 @@ import one.digitalinnovation.beerStock.dto.BeerDTO;
 import one.digitalinnovation.beerStock.entity.Beer;
 import one.digitalinnovation.beerStock.exception.BeerAlreadyRegisteredException;
 import one.digitalinnovation.beerStock.exception.BeerNotFoundException;
+import one.digitalinnovation.beerStock.exception.BeerStockExceededException;
 import one.digitalinnovation.beerStock.mapper.BeerMapper;
 import one.digitalinnovation.beerStock.repository.BeerRepository;
 import org.hamcrest.MatcherAssert;
@@ -121,6 +122,43 @@ public class BeerServiceTest {
         List<BeerDTO> foundListBeersDTO = beerService.listAll();
 
         assertThat(foundListBeersDTO, is(empty()));
+    }
+
+    @Test
+    void whenExclusionIsCalledWithValidIdThenABeerShouldBeDeleted() throws BeerNotFoundException{
+        // given
+        BeerDTO expectedDeletedBeerDTO = BeerDTOBuilder.builder().build().toBeerDTO();
+        Beer expectedDeletedBeer = beerMapper.toModel(expectedDeletedBeerDTO);
+
+        // when
+        when(beerRepository.findById(expectedDeletedBeerDTO.getId())).thenReturn(Optional.of(expectedDeletedBeer));
+        doNothing().when(beerRepository).deleteById(expectedDeletedBeerDTO.getId());
+
+        // then
+        beerService.deleteById(expectedDeletedBeerDTO.getId());
+
+        verify(beerRepository, times(1)).findById(expectedDeletedBeerDTO.getId());
+        verify(beerRepository, times(1)).deleteById(expectedDeletedBeerDTO.getId());
+    }
+
+    @Test
+    void whenIncrementIsCalledThenIncrementBeerStock() throws BeerNotFoundException, BeerStockExceededException {
+        //given
+        BeerDTO expectedBeerDTO = BeerDTOBuilder.builder().build().toBeerDTO();
+        Beer expectedBeer = beerMapper.toModel(expectedBeerDTO);
+
+        //when
+        when(beerRepository.findById(expectedBeerDTO.getId())).thenReturn(Optional.of(expectedBeer));
+        when(beerRepository.save(expectedBeer)).thenReturn(expectedBeer);
+
+        int quantityToIncrement = 10;
+        int expectedQuantityAfterIncrement = expectedBeerDTO.getQuantity() + quantityToIncrement;
+
+        // then
+        BeerDTO incrementedBeerDTO = beerService.increment(expectedBeerDTO.getId(), quantityToIncrement);
+
+        assertThat(expectedQuantityAfterIncrement, equalTo(incrementedBeerDTO.getQuantity()));
+        assertThat(expectedQuantityAfterIncrement, lessThan(expectedBeerDTO.getMax()));
     }
 
 }
