@@ -4,6 +4,7 @@ import one.digitalinnovation.beerStock.builder.BeerDTOBuilder;
 import one.digitalinnovation.beerStock.dto.BeerDTO;
 import one.digitalinnovation.beerStock.entity.Beer;
 import one.digitalinnovation.beerStock.exception.BeerAlreadyRegisteredException;
+import one.digitalinnovation.beerStock.exception.BeerNotFoundException;
 import one.digitalinnovation.beerStock.mapper.BeerMapper;
 import one.digitalinnovation.beerStock.repository.BeerRepository;
 import org.hamcrest.MatcherAssert;
@@ -64,6 +65,21 @@ public class BeerServiceTest {
         // then
         assertThrows(BeerAlreadyRegisteredException.class, () -> beerService
                 .createBeer(expectedBeerDTO));
+    }
+
+    @Test
+    void whenValidBeerNameIsGivenThenReturnABeer() throws BeerNotFoundException {
+        // given
+        BeerDTO expectedFoundBeerDTO = BeerDTOBuilder.builder().build().toBeerDTO();
+        Beer expectedFoundBeer = beerMapper.toModel(expectedFoundBeerDTO);
+
+        // when
+        when(beerRepository.findByName(expectedFoundBeer.getName())).thenReturn(Optional.of(expectedFoundBeer));
+
+        // then
+        BeerDTO foundBeerDTO = beerService.findByName(expectedFoundBeerDTO.getName());
+
+        assertThat(foundBeerDTO, is(equalTo(expectedFoundBeerDTO)));
     }
 
 }
